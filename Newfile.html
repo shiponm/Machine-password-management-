@@ -1,0 +1,187 @@
+
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Password Manager — Jenphar Bangladesh Limited</title>
+<style>
+  body { font-family:"Segoe UI", Arial, sans-serif; margin:0; background:#f4f7fa; color:#222; }
+  header { background:#2563eb; color:white; padding:15px 20px; text-align:center; box-shadow:0 3px 6px rgba(0,0,0,0.1); }
+  h1 { margin:0; font-size:22px; }
+  .small { font-size:13px; color:#f0f9ff; margin:2px 0; }
+  .container { max-width:1100px; margin:20px auto; padding:0 15px; }
+  .card { background:#fff; border-radius:10px; padding:20px; box-shadow:0 4px 12px rgba(0,0,0,0.08); margin-bottom:20px; }
+  label { font-weight:600; margin-top:10px; display:block; font-size:14px; }
+  input, textarea { width:100%; padding:10px; margin-top:5px; border:1px solid #ddd; border-radius:6px; font-size:14px; }
+  textarea { resize:vertical; }
+  .btn { padding:8px 14px; border:none; border-radius:6px; font-size:14px; cursor:pointer; transition:0.2s; }
+  .btn:hover { opacity:0.9; }
+  .btn.primary { background:#2563eb; color:white; }
+  .btn.success { background:#16a34a; color:white; }
+  .btn.warning { background:#f59e0b; color:white; }
+  .btn.danger { background:#dc2626; color:white; }
+  .btn.indigo { background:#4f46e5; color:white; }
+  .btn.light { background:#f3f4f6; }
+  .row { display:flex; flex-wrap:wrap; gap:12px; margin-top:12px; }
+  .col { flex:1; }
+  table { width:100%; border-collapse:collapse; margin-top:15px; font-size:14px; }
+  th, td { padding:10px; border-bottom:1px solid #eee; text-align:left; }
+  th { background:#f9fafb; font-weight:600; }
+  tr:hover { background:#f3f4f6; }
+  .search-bar { display:flex; gap:8px; margin-bottom:12px; }
+  .search-bar input { flex:1; }
+  .action-btns button { margin-right:5px; margin-top:5px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🔐 Password Manager</h1>
+  <p class="small">Company: Jenphar Bangladesh Limited</p>
+  <p class="small">Securely manage Area, Machine, Username & Password</p>
+</header>
+
+<div class="container">
+  <!-- Add/Edit Form -->
+  <div class="card">
+    <h2 style="margin-top:0;font-size:18px;">Add / Edit Entry</h2>
+    <label>Area / Section</label>
+    <input id="area" placeholder="e.g. Packaging">
+    <label>Machine</label>
+    <input id="machine" placeholder="e.g. Tablet Press">
+    <div class="row">
+      <div class="col">
+        <label>Username</label>
+        <input id="username" placeholder="Enter username">
+      </div>
+      <div class="col">
+        <label>Password</label>
+        <input id="password" placeholder="Enter password">
+      </div>
+    </div>
+    <label>Note</label>
+    <textarea id="note" rows="2" placeholder="Optional note"></textarea>
+    <div class="row">
+      <button id="saveBtn" class="btn primary">💾 Save</button>
+      <button id="clearBtn" class="btn light">🧹 Clear</button>
+      <button id="genBtn" class="btn success">⚡ Generate</button>
+    </div>
+  </div>
+
+  <!-- Vault -->
+  <div class="card">
+    <h2 style="margin-top:0;font-size:18px;">Vault</h2>
+    <div class="search-bar">
+      <input id="search" placeholder="🔍 Search..." oninput="searchData()">
+      <button id="refreshBtn" class="btn light">⟳ Refresh</button>
+    </div>
+    <div class="row" style="margin-bottom:10px;">
+      <button id="exportBtn" class="btn success">⬇️ Export</button>
+      <label class="btn indigo" style="cursor:pointer">
+        ⬆️ Import
+        <input type="file" id="importFile" style="display:none" accept=".json">
+      </label>
+      <button id="clearAllBtn" class="btn danger">🗑️ Clear All</button>
+    </div>
+    <div id="listArea"></div>
+  </div>
+
+  <!-- Footer -->
+  <div class="card" style="text-align:center; background:#e0f2fe; color:#1e40af;">
+    <p style="margin:4px 0; font-weight:600;">Company: Jenphar Bangladesh Limited</p>
+    <p style="margin:4px 0;">Developer: You</p>
+    <p style="margin:4px 0; font-size:13px; color:#1e3a8a;">
+      Data saved locally in your browser (localStorage). Export file দিয়ে অন্য browser/device-এ Import করা যাবে।
+    </p>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'passwordManagerFinal';
+let entries = [];
+let editId = null;
+const $ = id=>document.getElementById(id);
+
+// Utility
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)); render(); }
+function load(){ entries = JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]'); render(); }
+
+// Render table
+function render(filter=''){
+  const list = $('listArea');
+  const q = (filter||$('search').value||'').toLowerCase();
+  const filtered = entries.filter(e=>(e.area+e.machine+e.username).toLowerCase().includes(q));
+  if(!filtered.length){ list.innerHTML = "<p class='small'>No entries found</p>"; return; }
+  let html = "<table><tr><th>Area</th><th>Machine</th><th>User</th><th>Password</th><th>Actions</th></tr>";
+  filtered.forEach(e=>{
+    html += `<tr>
+      <td>${e.area}</td>
+      <td>${e.machine}</td>
+      <td>${e.username}</td>
+      <td>•••••• 
+        <button class='btn light' onclick="alert('Password: ${e.password}')">Show</button>
+        <button class='btn light' onclick="navigator.clipboard.writeText('${e.password}')">Copy</button>
+      </td>
+      <td class='action-btns'>
+        <button class='btn warning' onclick="edit('${e.id}')">Edit</button>
+        <button class='btn danger' onclick="del('${e.id}')">Delete</button>
+      </td>
+    </tr>`;
+  });
+  html+="</table>";
+  list.innerHTML=html;
+}
+
+// Actions
+$('saveBtn').onclick=()=>{
+  const area=$('area').value.trim(), m=$('machine').value.trim(),
+        u=$('username').value.trim(), p=$('password').value.trim(), n=$('note').value.trim();
+  if(!area||!m||!u||!p) return alert("Fill all required fields!");
+  if(editId){ 
+    let i=entries.findIndex(x=>x.id==editId);
+    entries[i]={...entries[i], area:area, machine:m, username:u, password:p, note:n};
+    editId=null;
+  } else entries.unshift({id:uid(),area:area,machine:m,username:u,password:p,note:n});
+  $('area').value=$('machine').value=$('username').value=$('password').value=$('note').value="";
+  save();
+};
+$('clearBtn').onclick=()=>{ $('area').value=$('machine').value=$('username').value=$('password').value=$('note').value=""; editId=null; };
+$('genBtn').onclick=()=>{ const chars="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz0123456789!@#$%"; let pw=""; for(let i=0;i<12;i++) pw+=chars[Math.floor(Math.random()*chars.length)]; $('password').value=pw; };
+function edit(id){ const e=entries.find(x=>x.id==id); $('area').value=e.area; $('machine').value=e.machine; $('username').value=e.username; $('password').value=e.password; $('note').value=e.note; editId=id; window.scrollTo({top:0,behavior:'smooth'}); }
+function del(id){ if(confirm("Delete this entry?")){ entries=entries.filter(x=>x.id!=id); save(); } }
+function searchData(){ render($('search').value); }
+$('refreshBtn').onclick=()=>load();
+$('clearAllBtn').onclick=()=>{ if(confirm("Clear all?")){ entries=[]; save(); } };
+
+// Export / Import
+$('exportBtn').onclick=()=>{
+  const blob=new Blob([JSON.stringify(entries,null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="passwords.json"; a.click();
+};
+$('importFile').onchange=(e)=>{
+  const f=e.target.files[0]; if(!f) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const data=JSON.parse(ev.target.result);
+      if(!Array.isArray(data)) return alert("Invalid JSON format!");
+      let added=0;
+      data.forEach(d=>{
+        if(!entries.find(x=>x.area==d.area && x.machine==d.machine && x.username==d.username)){
+          if(!d.id) d.id=uid();
+          entries.push(d);
+          added++;
+        }
+      });
+      save(); alert("Imported "+added+" new entries!");
+    }catch(err){ alert("Invalid file"); }
+  };
+  reader.readAsText(f);
+};
+
+// Initial load
+load();
+</script>
+</body>
+</html>
